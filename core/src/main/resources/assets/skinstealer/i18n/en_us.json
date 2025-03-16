@@ -1,0 +1,12 @@
+{
+  "skinstealer": {
+    "settings": {
+      "enabled": {
+        "name": "Enabled"
+      }
+    },
+    "command": {
+      "usage": "Usage: /skinstealer <Name>"
+    }
+  }
+}
