@@ -1,10 +1,9 @@
 package de.darfnichtmehr.skinstealer.command;
 
+import com.google.gson.JsonElement;
 import de.darfnichtmehr.skinstealer.SkinStealerAddon;
 import java.io.IOException;
-import java.util.UUID;
 import net.labymod.api.Constants.Urls;
-import net.labymod.api.Laby;
 import net.labymod.api.client.chat.command.Command;
 import net.labymod.api.client.component.Component;
 import net.labymod.api.client.component.format.NamedTextColor;
@@ -14,13 +13,14 @@ import net.labymod.api.client.session.MinecraftServices.SkinVariant;
 import net.labymod.api.notification.Notification;
 import net.labymod.api.util.concurrent.task.Task;
 import net.labymod.api.util.io.web.WebInputStream;
-import net.labymod.api.util.io.web.exception.WebRequestException;
 import net.labymod.api.util.io.web.request.Request;
 import net.labymod.api.util.io.web.request.Response;
 import net.labymod.api.util.io.web.result.Result;
 import net.labymod.core.main.LabyMod;
 
 public class SkinStealerCommand extends Command {
+
+  private static final String LABYNET_UUID = Urls.LABYNET_BASE + "api/v3/user/%s/uuid";
   private final SkinStealerAddon ADDON;
   public SkinStealerCommand(SkinStealerAddon addon) {
     super("skinstealer");
@@ -57,20 +57,28 @@ public class SkinStealerCommand extends Command {
   }
 
   private static void stealSkin(String name) throws IOException {
-    Result<UUID> uuid = Laby.references().labyNetController().loadUniqueIdByNameSync(name);
+    Result<JsonElement> uuid = Request.ofGson(JsonElement.class)
+        .url(String.format(LABYNET_UUID, name))
+        .async(false)
+        .executeSync();
+
+    // Hotfix until DefaultLabyNetController#loadUniqueIdByNameSync is fixed
+
+//    Result<UUID> uuid = Laby.references().labyNetController().loadUniqueIdByNameSync(name);
 
     if (uuid.hasException()) {
-      throw new WebRequestException(uuid.exception());
+      throw uuid.exception();
     }
 
     Response<WebInputStream> skin = Request
         .ofInputStream()
-        .url(String.format(Urls.LABYNET_SKIN, uuid.get()))
+//        .url(String.format(Urls.LABYNET_SKIN, uuid.get()))
+        .url(String.format(Urls.LABYNET_SKIN, uuid.get().getAsJsonObject().get("uuid").getAsString()))
         .async(false)
         .executeSync();
 
     if (skin.hasException()) {
-      throw new WebRequestException(skin.exception());
+      throw skin.exception();
     }
 
     String skinType = skin.getHeaders().get("x-skin-type");
